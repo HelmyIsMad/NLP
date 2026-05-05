@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import tempfile
@@ -15,18 +15,12 @@ def get_model():
         model = WhisperModel("base.en", device="cpu", compute_type="int8")
     return model
 
-@app.route("/")
-def home():
-    return send_from_directory("frontend", "index.html")
-
+@app.route("/api/health")
 @app.route("/health")
 def health():
     return jsonify({"status": "ok"})
 
-@app.route("/assets/<path:filename>")
-def assets(filename):
-    return send_from_directory("frontend/assets", filename)
-
+@app.route("/api/transcribe", methods=["POST"])
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
     if "audio" not in request.files:
@@ -48,6 +42,3 @@ def transcribe():
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
-
-if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=5000)
