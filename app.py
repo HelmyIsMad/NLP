@@ -12,7 +12,7 @@ def get_model():
     global model
     if model is None:
         from faster_whisper import WhisperModel
-        model = WhisperModel("base", device="cpu", compute_type="int8")
+        model = WhisperModel("base.en", device="cpu", compute_type="int8")
     return model
 
 @app.route("/")
