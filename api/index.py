@@ -3,6 +3,9 @@ from flask_cors import CORS
 import os
 import tempfile
 
+os.environ["HF_HOME"] = "/tmp/huggingface"
+os.environ["WHISPER_CACHE"] = "/tmp/whisper"
+
 app = Flask(__name__)
 CORS(app)
 
