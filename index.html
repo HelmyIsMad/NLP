@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Transcription</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h1 { margin-bottom: 1.5rem; color: #333; font-size: 1.5rem; }
+        .record-btn { width: 100%; padding: 1rem; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-bottom: 1rem; }
+        .record-btn:not(:disabled) { background: #e74c3c; color: white; }
+        .record-btn:not(:disabled):hover { background: #c0392b; }
+        .record-btn:disabled { background: #95a5a6; cursor: not-allowed; }
+        .record-btn.recording { background: #e74c3c; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        #audio-preview { width: 100%; margin-bottom: 1rem; display: none; }
+        #status { text-align: center; margin-bottom: 1rem; color: #666; font-size: 0.9rem; }
+        #result { width: 100%; min-height: 150px; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; resize: vertical; font-size: 1rem; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audio Transcription</h1>
+        <button id="recordBtn" class="record-btn">Start Recording</button>
+        <audio id="audio-preview" controls></audio>
+        <div id="status"></div>
+        <textarea id="result" placeholder="Transcription will appear here..."></textarea>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        const recordBtn = document.getElementById("recordBtn");
+        const audioPreview = document.getElementById("audio-preview");
+        const status = document.getElementById("status");
+        const result = document.getElementById("result");
+
+        recordBtn.addEventListener("click", async () => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPreview.src = audioUrl;
+                    audioPreview.style.display = "block";
+                    transcribeAudio(audioBlob);
+                };
+
+                mediaRecorder.start();
+                recordBtn.textContent = "Stop Recording";
+                recordBtn.classList.add("recording");
+                status.textContent = "Recording...";
+            } catch (err) {
+                status.textContent = "Error: " + err.message;
+            }
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            recordBtn.textContent = "Start Recording";
+            recordBtn.classList.remove("recording");
+            status.textContent = "";
+        }
+
+        async function transcribeAudio(audioBlob) {
+            status.textContent = "Transcribing...";
+            recordBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append("audio", audioBlob, "recording.webm");
+
+            try {
+                const response = await fetch("/transcribe", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    result.value = data.text || "No text detected";
+                    status.textContent = `Language: ${data.language}`;
+                } else {
+                    result.value = "Error: " + data.error;
+                    status.textContent = "";
+                }
+            } catch (err) {
+                result.value = "Error: " + err.message;
+                status.textContent = "";
+            } finally {
+                recordBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
