@@ -1,13 +1,19 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from faster_whisper import WhisperModel
 import os
 import tempfile
 
 app = Flask(__name__)
 CORS(app)
 
-model = WhisperModel("base", device="cpu", compute_type="int8")
+model = None
+
+def get_model():
+    global model
+    if model is None:
+        from faster_whisper import WhisperModel
+        model = WhisperModel("base", device="cpu", compute_type="int8")
+    return model
 
 @app.route("/")
 def home():
@@ -33,7 +39,8 @@ def transcribe():
         tmp_path = tmp_file.name
 
     try:
-        segments, info = model.transcribe(tmp_path, beam_size=5)
+        whisper_model = get_model()
+        segments, info = whisper_model.transcribe(tmp_path, beam_size=5)
         transcription = " ".join([seg.text for seg in segments])
         return jsonify({"text": transcription, "language": info.language})
     except Exception as e:
