@@ -11,9 +11,9 @@ model = WhisperModel("base", device="cpu", compute_type="int8")
 def home():
     return send_from_directory("frontend", "index.html")
 
-@app.route("/static/<path:filename>")
-def static_files(filename):
-    return send_from_directory("frontend", filename)
+@app.route("/script.js")
+def script():
+    return send_from_directory("frontend", "script.js")
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
