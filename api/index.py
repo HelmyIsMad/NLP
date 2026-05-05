@@ -2,11 +2,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import tempfile
+import uuid
 
 os.environ["HF_HOME"] = "/tmp/huggingface"
 os.environ["WHISPER_CACHE"] = "/tmp/whisper"
+os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers"
 
 app = Flask(__name__)
+app.config["INSTANCE_PATH"] = "/tmp"
 CORS(app)
 
 model = None
@@ -30,10 +33,9 @@ def transcribe():
         return jsonify({"error": "No audio file provided"}), 400
 
     audio_file = request.files["audio"]
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp_file:
-        audio_file.save(tmp_file)
-        tmp_path = tmp_file.name
+    
+    tmp_path = f"/tmp/{uuid.uuid4()}.webm"
+    audio_file.save(tmp_path)
 
     try:
         whisper_model = get_model()
