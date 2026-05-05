@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 from faster_whisper import WhisperModel
 import os
 import tempfile
 
 app = Flask(__name__)
+CORS(app)
 
 model = WhisperModel("base", device="cpu", compute_type="int8")
 
@@ -11,9 +13,13 @@ model = WhisperModel("base", device="cpu", compute_type="int8")
 def home():
     return send_from_directory("frontend", "index.html")
 
-@app.route("/script.js")
-def script():
-    return send_from_directory("frontend", "script.js")
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"})
+
+@app.route("/assets/<path:filename>")
+def assets(filename):
+    return send_from_directory("frontend/assets", filename)
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
@@ -37,4 +43,4 @@ def transcribe():
             os.remove(tmp_path)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=False, host="0.0.0.0", port=5000)
